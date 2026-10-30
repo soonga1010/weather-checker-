@@ -8,287 +8,270 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts - Inter & Pretendard vibe -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Pretendard', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .weather-card-gradient {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        }
-        .card-shadow {
-            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
-        }
+        body { font-family: 'Pretendard', sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 sm:p-4">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-sky-100 min-h-screen text-slate-800 pb-12">
 
-    <!-- Mobile Container Wrapper for Desktop Viewport simulation & mobile responsiveness -->
-    <div class="w-full max-w-md bg-white sm:rounded-3xl shadow-2xl overflow-hidden min-h-screen sm:min-h-[800px] flex flex-col justify-between">
+    <!-- Top Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                    <i class="fa-solid fa-cloud-sun text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base text-slate-900 leading-tight">캠퍼스 날씨 체커</h1>
+                    <p class="text-xs text-slate-500">SSU Weather Intelligence</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span id="current-time" class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">실시간 연동중</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 pt-5 space-y-4">
         
-        <!-- Header Section -->
-        <header class="bg-white px-6 pt-6 pb-4 border-b border-slate-100 sticky top-0 z-10">
-            <div class="flex justify-between items-center">
-                <div>
-                    <span class="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">Campus Live</span>
-                    <h1 class="text-2xl font-bold text-slate-800 mt-1">캠퍼스 날씨 체커</h1>
-                </div>
-                <div class="text-right">
-                    <div id="current-time" class="text-sm font-medium text-slate-500">불러오는 중...</div>
-                    <div class="text-xs text-slate-400">학위 취득의 성지, 캠퍼스</div>
-                </div>
+        <!-- Quick Alert Banner -->
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-start space-x-3 shadow-sm animate-pulse">
+            <div class="text-amber-500 text-lg mt-0.5"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="text-xs">
+                <span class="font-bold text-amber-800">등교길 주의보:</span> 
+                <span id="alert-text" class="text-amber-700">인문관 언덕길 맞바람이 강합니다. 외투 단추를 꼭 잠그세요!</span>
             </div>
-        </header>
+        </div>
 
-        <!-- Main Content Area -->
-        <main class="p-6 flex-1 flex flex-col gap-6">
+        <!-- Location Selector Tabs -->
+        <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">캠퍼스 거점 선택</label>
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="changeLocation('gate')" id="btn-gate" class="location-btn py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-md shadow-indigo-100 flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-archway text-sm"></i>
+                    <span>정문 / 언덕길</span>
+                </button>
+                <button onclick="changeLocation('library')" id="btn-library" class="location-btn py-2.5 px-3 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-book-open text-sm"></i>
+                    <span>중앙도서관</span>
+                </button>
+                <button onclick="changeLocation('building')" id="btn-building" class="location-btn py-2.5 px-3 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 flex flex-col items-center justify-center space-y-1">
+                    <i class="fa-solid fa-building-columns text-sm"></i>
+                    <span>강의동 (인문/공학)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Weather Card -->
+        <div id="weather-card" class="glass-card border border-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 relative overflow-hidden transition-all">
+            <div class="absolute -right-6 -top-6 w-32 h-32 bg-indigo-100/50 rounded-full blur-2xl pointer-events-none"></div>
             
-            <!-- Campus Location Selector Tabs -->
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">캠퍼스 거점 선택</label>
-                <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-2xl">
-                    <button onclick="switchLocation('gate')" id="btn-gate" class="py-2.5 px-3 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 bg-white text-blue-600 shadow-sm flex flex-col items-center gap-1">
-                        <i class="fa-solid fa-person-walking-arrow-right"></i>
-                        <span>정문/언덕길</span>
-                    </button>
-                    <button onclick="switchLocation('library')" id="btn-library" class="py-2.5 px-3 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 flex flex-col items-center gap-1">
-                        <i class="fa-solid fa-book-open"></i>
-                        <span>중앙도서관</span>
-                    </button>
-                    <button onclick="switchLocation('hall')" id="btn-hall" class="py-2.5 px-3 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 flex flex-col items-center gap-1">
-                        <i class="fa-solid fa-graduation-cap"></i>
-                        <span>인문/공학동</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Weather Summary Card -->
-            <div class="weather-card-gradient text-white rounded-3xl p-6 card-shadow relative overflow-hidden transition-all duration-300">
-                <!-- Decorative background elements -->
-                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
-                
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span id="location-name" class="text-blue-100 text-sm font-medium">정문 및 언덕길 (지형성 바람 주의)</span>
-                        <div class="flex items-baseline gap-2 mt-2">
-                            <span id="temp-display" class="text-5xl font-extrabold tracking-tight">14°C</span>
-                            <span id="weather-desc" class="text-lg font-medium text-blue-100">구름 많음</span>
-                        </div>
-                    </div>
-                    <div id="weather-icon-container" class="text-5xl text-blue-100 animate-pulse">
-                        <i class="fa-solid fa-cloud-sun"></i>
-                    </div>
-                </div>
-
-                <div class="mt-6 pt-4 border-t border-white/20 flex items-center justify-between text-xs sm:text-sm text-blue-100">
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-solid fa-temperature-arrow-down"></i>
-                        <span>체감 <strong id="feels-like" class="text-white">12°C</strong></span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-solid fa-droplet"></i>
-                        <span>습도 <strong id="humidity" class="text-white">55%</strong></span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-solid fa-wind"></i>
-                        <span>풍속 <strong id="wind-speed" class="text-white">4.2 m/s</strong></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comment / Alert Banner -->
-            <div id="weather-comment-box" class="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 transition-all duration-300">
-                <div class="text-amber-500 text-lg mt-0.5">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
+            <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 id="comment-title" class="text-sm font-bold text-amber-900">등굣길 바람 주의보</h3>
-                    <p id="comment-desc" class="text-xs text-amber-700 mt-0.5">언덕길 구간에서 맞바람이 강하게 불어요. 가벼운 바람막이나 얇은 아우터를 추천합니다.</p>
+                    <span id="location-badge" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">정문 · 등굣길 체감존</span>
+                    <h2 id="location-title" class="text-2xl font-black text-slate-900 mt-2">정문 및 상도역 언덕길</h2>
+                </div>
+                <div id="weather-icon-container" class="text-4xl text-amber-500">
+                    <i id="main-icon" class="fa-solid fa-cloud-sun"></i>
                 </div>
             </div>
 
-            <!-- Commuter/Student Guide (Checklist) -->
-            <div>
-                <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">통학러 맞춤 등교 준비물 가이드</h2>
-                <div class="grid grid-cols-3 gap-3">
-                    
-                    <!-- Umbrella Guide -->
-                    <div class="bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 flex flex-col items-center text-center">
-                        <div id="guide-umbrella-icon" class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-2">
-                            <i class="fa-solid fa-umbrella"></i>
-                        </div>
-                        <span class="text-xs text-slate-400 font-medium">우산 여부</span>
-                        <span id="guide-umbrella-text" class="text-sm font-bold text-slate-800 mt-0.5">지참 불필요</span>
-                    </div>
+            <div class="flex items-baseline space-x-3 my-4">
+                <span id="temp-display" class="text-5xl font-black tracking-tighter text-slate-900">14.5°C</span>
+                <span id="weather-desc" class="text-base font-semibold text-slate-600">구름 많고 쌀쌀함</span>
+            </div>
 
-                    <!-- Outerwear Guide -->
-                    <div class="bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 flex flex-col items-center text-center">
-                        <div id="guide-outer-icon" class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg mb-2">
+            <!-- Comment Pill -->
+            <div class="bg-slate-100/80 rounded-2xl p-3 text-xs text-slate-600 flex items-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-indigo-500"></i>
+                <span id="weather-comment">체감 온도가 실제 기온보다 2도 낮아요. 따뜻한 아우터 필수!</span>
+            </div>
+
+            <!-- Sub Weather Details Grid -->
+            <div class="grid grid-cols-3 gap-2 mt-5 pt-5 border-t border-slate-100 text-center">
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <div class="text-slate-400 text-xs mb-1"><i class="fa-solid fa-droplet text-blue-400"></i> 습도</div>
+                    <div id="humidity-val" class="font-bold text-slate-700 text-sm">58%</div>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <div class="text-slate-400 text-xs mb-1"><i class="fa-solid fa-wind text-sky-400"></i> 풍속</div>
+                    <div id="wind-val" class="font-bold text-slate-700 text-sm">4.2 m/s</div>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <div class="text-slate-400 text-xs mb-1"><i class="fa-solid fa-umbrella text-indigo-400"></i> 강수확률</div>
+                    <div id="rain-val" class="font-bold text-slate-700 text-sm">10%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendation Section -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center justify-between">
+                <span>🎒 통학러 맞춤 준비물 & 스타일링</span>
+                <span class="text-xs text-indigo-600 font-normal">AI 실시간 분석</span>
+            </h3>
+
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
                             <i class="fa-solid fa-shirt"></i>
                         </div>
-                        <span class="text-xs text-slate-400 font-medium">추천 아우터</span>
-                        <span id="guide-outer-text" class="text-sm font-bold text-slate-800 mt-0.5">가디건/자켓</span>
-                    </div>
-
-                    <!-- Campus Wind / Move Index -->
-                    <div class="bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 flex flex-col items-center text-center">
-                        <div id="guide-wind-icon" class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg mb-2">
-                            <i class="fa-solid fa-person-hiking"></i>
+                        <div>
+                            <div class="text-xs text-slate-500">추천 아우터</div>
+                            <div id="rec-outer" class="text-xs font-bold text-slate-800">울 코트 / 가벼운 패딩 베스트</div>
                         </div>
-                        <span class="text-xs text-slate-400 font-medium">언덕 이동지수</span>
-                        <span id="guide-wind-text" class="text-sm font-bold text-slate-800 mt-0.5">보통 (쾌적)</span>
                     </div>
+                    <span class="text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-semibold">체온 유지</span>
+                </div>
 
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-umbrella"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500">우산 지참 여부</div>
+                            <div id="rec-umbrella" class="text-xs font-bold text-slate-800">우산 필요 없음 (오후까지 맑음)</div>
+                        </div>
+                    </div>
+                    <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg font-semibold">안심</span>
                 </div>
             </div>
+        </div>
 
-        </main>
+        <!-- Interactive Weather Simulator for Demo -->
+        <div class="bg-indigo-900 text-white rounded-3xl p-5 shadow-lg space-y-3">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-indigo-100"><i class="fa-solid fa-sliders mr-1.5"></i> 시연용 날씨 시뮬레이터</h3>
+                <span class="text-[10px] bg-indigo-700 px-2 py-0.5 rounded text-indigo-200">발표 시연용</span>
+            </div>
+            <p class="text-xs text-indigo-200">버튼을 눌러 날씨 변화에 따른 반응을 시연해보세요!</p>
+            <div class="grid grid-cols-3 gap-2 pt-1">
+                <button onclick="setScenario('sunny')" class="bg-indigo-800 hover:bg-indigo-700 text-xs py-2 rounded-xl font-medium transition-all border border-indigo-700">☀️ 맑음/따뜻</button>
+                <button onclick="setScenario('windy')" class="bg-indigo-800 hover:bg-indigo-700 text-xs py-2 rounded-xl font-medium transition-all border border-indigo-700">💨 강풍/쌀쌀</button>
+                <button onclick="setScenario('rainy')" class="bg-indigo-800 hover:bg-indigo-700 text-xs py-2 rounded-xl font-medium transition-all border border-indigo-700">🌧️ 비 소식</button>
+            </div>
+        </div>
 
-        <!-- Footer / Simulated Refresh Action -->
-        <footer class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-            <span>© 2026 Campus Weather Project</span>
-            <button onclick="refreshWeatherData()" class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
-                <i class="fa-solid fa-rotate-right" id="refresh-icon"></i> 실시간 갱신
-            </button>
-        </footer>
+    </main>
 
-    </div>
+    <footer class="text-center text-xs text-slate-400 mt-8">
+        <p>© 2026 Campus Weather Intelligence Platform. All rights reserved.</p>
+    </footer>
 
-    <!-- JavaScript Application Logic -->
     <script>
-        // Mock Weather Database for Campus Locations
-        const campusData = {
-            gate: {
-                name: "정문 및 언덕길 (지형성 바람 구역)",
-                temp: "13°C",
-                feelsLike: "10°C",
-                humidity: "60%",
-                windSpeed: "6.5 m/s",
-                desc: "흐림 후 바람",
-                iconClass: "fa-solid fa-wind",
-                commentTitle: "정문 언덕길 맞바람 주의",
-                commentDesc: "지하철역에서 올라오는 언덕 구간에 돌풍이 불 수 있습니다. 체감온도가 낮으니 따뜻한 겉옷을 여미세요.",
-                commentType: "warning", // warning, info, success
-                umbrella: "우산 지참",
-                umbrellaSub: "오후 3시 비 소식",
-                outer: "바람막이/자켓",
-                windIndex: "주의 (바람 강함)"
-            },
-            library: {
-                name: "중앙도서관 광장 (개방형 공간)",
-                temp: "15°C",
-                feelsLike: "14°C",
-                humidity: "52%",
-                windSpeed: "3.1 m/s",
-                desc: "구름 조금",
-                iconClass: "fa-solid fa-cloud-sun",
-                commentTitle: "독서하기 쾌적한 날씨",
-                commentDesc: "도서관 주변 광장 햇살이 좋습니다. 실내는 에어컨 가동 중이니 얇은 셔츠나 가디건을 챙기세요.",
-                commentType: "success",
-                umbrella: "지참 불필요",
-                umbrellaSub: "강수 확률 10%",
-                outer: "가디건/셔츠",
-                windIndex: "좋음 (산책 최적)"
-            },
-            hall: {
-                name: "인문관 및 공학강의동 밀집 지역",
-                temp: "14.5°C",
-                feelsLike: "13.5°C",
-                humidity: "55%",
-                windSpeed: "2.4 m/s",
-                desc: "맑음",
-                iconClass: "fa-solid fa-sun",
-                commentTitle: "강의실 이동 최적",
-                commentDesc: "건물 사이 그늘이 시원합니다. 건물 간 이동 시 별다른 기상 제약 없이 원활하게 통행 가능합니다.",
-                commentType: "info",
-                umbrella: "지참 불필요",
-                umbrellaSub: "맑고 깨끗함",
-                outer: "기본 캐주얼",
-                windIndex: "매우 좋음"
-            }
-        };
-
-        // Current active location tracker
-        let currentLocation = 'gate';
-
-        // Update real time clock
-        function updateClock() {
+        // Real-time clock
+        function updateTime() {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             document.getElementById('current-time').innerText = `${hours}:${minutes}:${seconds} 실시간`;
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        setInterval(updateTime, 1000);
+        updateTime();
 
-        // Switch location tab function
-        function switchLocation(locationKey) {
-            currentLocation = locationKey;
+        // Location data dictionary
+        const locations = {
+            gate: {
+                badge: "정문 · 등굣길 체감존",
+                title: "정문 및 상도역 언덕길",
+                temp: "14.5°C",
+                desc: "구름 많고 쌀쌀함",
+                comment: "체감 온도가 실제 기온보다 2도 낮아요. 따뜻한 아우터 필수!",
+                humidity: "58%",
+                wind: "4.2 m/s",
+                rain: "10%",
+                outer: "울 코트 / 가벼운 패딩 베스트",
+                umbrella: "우산 필요 없음 (강수 확률 낮음)",
+                icon: "fa-cloud-sun",
+                alert: "인문관 언덕길 맞바람이 강합니다. 외투 단추를 꼭 잠그세요!"
+            },
+            library: {
+                badge: "중앙도서관 · 광장존",
+                title: "중앙도서관 앞 오픈 광장",
+                temp: "15.2°C",
+                desc: "맑고 온화함",
+                comment: "햇살이 좋아서 야외 테라스에서 공부하기 좋은 날씨예요!",
+                humidity: "50%",
+                wind: "2.1 m/s",
+                rain: "0%",
+                outer: "가디건 또는 셔츠 차림 추천",
+                umbrella: "지참 불필요",
+                icon: "fa-sun",
+                alert: "자외선 지수가 다소 높습니다. 장시간 야외 활동 시 주의하세요."
+            },
+            building: {
+                badge: "강의동 · 그늘존",
+                title: "인문관 및 형남공학관 골목",
+                temp: "13.8°C",
+                desc: "건물 사이 그늘로 서늘함",
+                comment: "고층 강의실 이동 시 복도가 서늘할 수 있으니 겉옷을 챙기세요.",
+                humidity: "62%",
+                wind: "3.5 m/s",
+                rain: "15%",
+                outer: "트렌치코트 또는 바람막이",
+                umbrella: "접이식 우산 1개 가방에 넣기 권장",
+                icon: "fa-cloud",
+                alert: "건물 사이 돌풍 구간이 있습니다. 우산이 뒤집히지 않도록 조심하세요."
+            }
+        };
+
+        let currentLocation = 'gate';
+
+        function changeLocation(locKey) {
+            currentLocation = locKey;
             
-            // Reset button states
-            ['gate', 'library', 'hall'].forEach(key => {
-                const btn = document.getElementById(`btn-${key}`);
-                if (key === locationKey) {
-                    btn.className = "py-2.5 px-3 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 bg-white text-blue-600 shadow-sm flex flex-col items-center gap-1";
-                } else {
-                    btn.className = "py-2.5 px-3 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 flex flex-col items-center gap-1";
-                }
+            // Update active button styles
+            document.querySelectorAll('.location-btn').forEach(btn => {
+                btn.className = "location-btn py-2.5 px-3 rounded-xl text-xs font-semibold transition-all bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 flex flex-col items-center justify-center space-y-1";
             });
+            
+            const activeBtn = document.getElementById(`btn-${locKey}`);
+            activeBtn.className = "location-btn py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-md shadow-indigo-100 flex flex-col items-center justify-center space-y-1";
 
-            // Populate data
-            const data = campusData[locationKey];
-            document.getElementById('location-name').innerText = data.name;
+            // Update content
+            const data = locations[locKey];
+            document.getElementById('location-badge').innerText = data.badge;
+            document.getElementById('location-title').innerText = data.title;
             document.getElementById('temp-display').innerText = data.temp;
             document.getElementById('weather-desc').innerText = data.desc;
-            document.getElementById('feels-like').innerText = data.feelsLike;
-            document.getElementById('humidity').innerText = data.humidity;
-            document.getElementById('wind-speed').innerText = data.windSpeed;
-            
-            // Icon update
-            document.getElementById('weather-icon-container').innerHTML = `<i class="${data.iconClass}"></i>`;
-
-            // Comment box update
-            const commentBox = document.getElementById('weather-comment-box');
-            document.getElementById('comment-title').innerText = data.commentTitle;
-            document.getElementById('comment-desc').innerText = data.commentDesc;
-
-            if (data.commentType === 'warning') {
-                commentBox.className = "bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 transition-all duration-300";
-                commentBox.querySelector('div').className = "text-amber-500 text-lg mt-0.5";
-                commentBox.querySelector('div').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-                document.getElementById('comment-title').className = "text-sm font-bold text-amber-900";
-                document.getElementById('comment-desc').className = "text-xs text-amber-700 mt-0.5";
-            } else if (data.commentType === 'success') {
-                commentBox.className = "bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 transition-all duration-300";
-                commentBox.querySelector('div').className = "text-emerald-500 text-lg mt-0.5";
-                commentBox.querySelector('div').innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-                document.getElementById('comment-title').className = "text-sm font-bold text-emerald-900";
-                document.getElementById('comment-desc').className = "text-xs text-emerald-700 mt-0.5";
-            } else {
-                commentBox.className = "bg-blue-50 border border-blue-200/80 rounded-2xl p-4 flex items-start gap-3 transition-all duration-300";
-                commentBox.querySelector('div').className = "text-blue-500 text-lg mt-0.5";
-                commentBox.querySelector('div').innerHTML = '<i class="fa-solid fa-circle-info"></i>';
-                document.getElementById('comment-title').className = "text-sm font-bold text-blue-900";
-                document.getElementById('comment-desc').className = "text-xs text-blue-700 mt-0.5";
-            }
-
-            // Guide cards update
-            document.getElementById('guide-umbrella-text').innerText = data.umbrella;
-            document.getElementById('guide-outer-text').innerText = data.outer;
-            document.getElementById('guide-wind-text').innerText = data.windIndex;
+            document.getElementById('weather-comment').innerText = data.comment;
+            document.getElementById('humidity-val').innerText = data.humidity;
+            document.getElementById('wind-val').innerText = data.wind;
+            document.getElementById('rain-val').innerText = data.rain;
+            document.getElementById('rec-outer').innerText = data.outer;
+            document.getElementById('rec-umbrella').innerText = data.umbrella;
+            document.getElementById('main-icon').className = `fa-solid ${data.icon}`;
+            document.getElementById('alert-text').innerText = data.alert;
         }
 
-        // Simulated refresh animation
-        function refreshWeatherData() {
-            const icon = document.getElementById('refresh-icon');
-            icon.classList.add('fa-spin');
-            setTimeout(() => {
-                icon.classList.remove('fa-spin');
-                switchLocation(currentLocation);
-            }, 600);
+        // Demo Scenarios
+        function setScenario(type) {
+            if (type === 'sunny') {
+                locations[currentLocation].temp = "21.0°C";
+                locations[currentLocation].desc = "쾌청하고 따스함";
+                locations[currentLocation].comment = "완벽한 캠퍼스 피크닉 날씨입니다! 얇은 티셔츠가 좋아요.";
+                locations[currentLocation].outer = "가벼운 셔츠 또는 긴팔 티셔츠";
+                locations[currentLocation].icon = "fa-sun";
+            } else if (type === 'windy') {
+                locations[currentLocation].temp = "11.2°C";
+                locations[currentLocation].desc = "강풍 주의보";
+                locations[currentLocation].comment = "언덕길 체감 온도가 뚝 떨어졌어요. 방풍 점퍼 필수!";
+                locations[currentLocation].outer = "두툼한 바람막이 / 패딩 자켓";
+                locations[currentLocation].icon = "fa-wind";
+            } else if (type === 'rainy') {
+                locations[currentLocation].temp = "12.5°C";
+                locations[currentLocation].desc = "가랑비 및 안개";
+                locations[currentLocation].comment = "강의실 이동 시 바닥이 미끄러울 수 있으니 우산을 꼭 챙기세요!";
+                locations[currentLocation].outer = "방수 후드 재킷 및 장우산";
+                locations[currentLocation].icon = "fa-cloud-rain";
+            }
+            changeLocation(currentLocation);
         }
     </script>
 </body>
